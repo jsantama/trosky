@@ -4,6 +4,9 @@
 .clang_complete
 .gcc-flags.json
 
+# Documentation and Snapshots
+docs/
+
 # Credentials (NEVER COMMIT)
 include/config.h
 
