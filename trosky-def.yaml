@@ -1,0 +1,53 @@
+system_name: "Asistente Senior Trosky"
+wake_word: "Trosky"
+notification_channel: "WhatsApp Group (CallMeBot)"
+
+nodes:
+  - id: "panel_seguridad_banio"
+    hardware: "ESP32-S3 + 1.14 TFT + BMP280"
+    location: "Baño"
+    peripherals:
+      display: "ST7789 (240x135)" #
+      sensor: "BMP280 (I2C 0x6B)" #
+      mic: "INMP441"
+      button_red: "GPIO_4"
+      button_yellow: "GPIO_5"
+    features:
+      - ui_dashboard:
+          style: "Dynamic_Nature_Animated"
+          color_palette: "Vibrant_Pastels"
+          animations:
+            idle: "Slow_Gradient_Shift"
+            on_event: "Pulse_Effect"
+          elements:
+            - temperature: "Digital_Gauge_Color_Coded"
+            - time: "Large_Bold_Animated_Colon"
+            - day_phase: "Icon_Sun_Moon_Motion"
+      - emergency_sos:
+          trigger: "Button_Red (Push > 1s)"
+          action: "WhatsApp: 🚨 EMERGENCIA en el baño. Por favor revisen."
+      - voice_assistance:
+          trigger: "Button_Yellow"
+          action: "Escuchar pregunta -> Procesar con IA -> Responder vía WhatsApp"
+
+  - id: "espejo_inteligente_sala"
+    hardware: "ESP32-S3-CAM + Mic"
+    location: "Sala / Espejo"
+    features:
+      - wake_word_activation: "Trosky"
+      - taxi_service:
+          trigger: "Voz: 'Trosky, pide un taxi'"
+          action: "WhatsApp: 🚕 Solicitud de Taxi desde la Sala."
+      - recipe_assistance:
+          trigger: "Voz: 'Trosky, receta de...'"
+          action: "WhatsApp: 🍳 Receta sugerida: [Detalle]"
+      - general_assistance:
+          trigger: "Voz: 'Trosky, [Pregunta General]'"
+          action: "Procesar LLM -> Responder en el Grupo de WhatsApp"
+      - medication_id:
+          trigger: "Cámara + Voz"
+          action: "Analizar medicamento -> WhatsApp: 💊 Medicina identificada."
+
+communication_logic:
+  primary: "MQTT via Orange Pi (Future)"
+  fallback: "Direct HTTP to CallMeBot API"
