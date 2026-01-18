@@ -7,7 +7,14 @@
 #define SAMPLE_RATE 16000
 
 LivingRoomNode::LivingRoomNode()
-    : EventBus(nullptr), AppState(nullptr), whatsApp(nullptr) {}
+    : EventBus(nullptr), AppState(nullptr), whatsApp(nullptr),
+      notificationTool(nullptr) {}
+
+LivingRoomNode::~LivingRoomNode() {
+  // [SESSION PROTOCOL 2.114 - Memory Management]
+  delete notificationTool;
+  // Note: whatsApp is managed by ServiceLocator, don't delete
+}
 
 void LivingRoomNode::init() {
   // WhatsApp Service Init from ServiceLocator

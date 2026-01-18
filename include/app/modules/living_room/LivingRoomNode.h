@@ -9,6 +9,7 @@
 class LivingRoomNode {
 public:
   LivingRoomNode();
+  ~LivingRoomNode(); // [SESSION PROTOCOL 2.114 - Memory Management]
   void init();
   void loop();
 

@@ -8,6 +8,14 @@ BathroomNode::BathroomNode()
     : AppState(nullptr), EventBus(nullptr), sensorTool(nullptr),
       inputTool(nullptr), notificationTool(nullptr), ui(nullptr) {}
 
+BathroomNode::~BathroomNode() {
+  // [SESSION PROTOCOL 2.114 - Memory Management]
+  delete sensorTool;
+  delete inputTool;
+  delete notificationTool;
+  delete ui;
+}
+
 void BathroomNode::init() {
   // Initialize I2C [SESSION PROTOCOL 4.3 - HAL Mapping]
   Wire.begin(HAL::Bathroom::I2C_SDA, HAL::Bathroom::I2C_SCL);

@@ -15,6 +15,7 @@
 class BathroomNode {
 public:
   BathroomNode();
+  ~BathroomNode(); // [SESSION PROTOCOL 2.114 - Memory Management]
   void init();
   void loop();
 
