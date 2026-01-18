@@ -27,6 +27,9 @@ void BathroomNode::init() {
 
   // 2. Initialize I2C [SESSION PROTOCOL 4.3 - HAL Mapping]
   Serial.println("[NODE] Initializing I2C...");
+  pinMode(HAL::Bathroom::PIN_I2C_POWER, OUTPUT);
+  digitalWrite(HAL::Bathroom::PIN_I2C_POWER, HIGH);
+  delay(10); // Wait for power to stabilize
   Wire.begin(HAL::Bathroom::I2C_SDA, HAL::Bathroom::I2C_SCL);
 
   // 3. Initialize SNTP

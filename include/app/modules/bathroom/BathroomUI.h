@@ -33,12 +33,10 @@ private:
   bool lastColonVisible;
 
   void drawBackground(float temp, bool force);
-  void drawTrosky(int x, int y, bool wag);
+  void drawTrosky(int x, int y, bool wag, bool forceRedraw);
   void drawSOS();
   void drawDayPhase(int x, int y, int hour);
-  void drawTextWithOutline(int x, int y, const char *text, uint16_t color,
-                           uint16_t outlineColor, uint8_t size = 1);
-  uint16_t interpolateColor(float temp);
+  uint16_t interpolateColor(float temp, int hour);
 };
 
 #endif

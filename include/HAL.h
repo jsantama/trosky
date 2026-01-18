@@ -16,9 +16,10 @@ constexpr int PIN_TFT_CS = 7;
 constexpr int PIN_TFT_DC = 39;
 constexpr int PIN_TFT_RST = 40;
 
-// I2C (Standard Feather Pins)
-constexpr int I2C_SDA = 3;
-constexpr int I2C_SCL = 4;
+// I2C (Stemma QT)
+constexpr int PIN_I2C_POWER = 21;
+constexpr int I2C_SDA = 42;
+constexpr int I2C_SCL = 41;
 constexpr int BMP280_ADDR = 0x77;
 } // namespace Bathroom
 

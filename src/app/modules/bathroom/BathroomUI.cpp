@@ -18,6 +18,8 @@ void BathroomUI::init() {
   Serial.println("[UI] TFT Init (Adafruit)...");
   tft.init(135, 240); // Init ST7789 240x135
   tft.setRotation(1);
+  // Try inversion - typical for some ST7789 panels
+  tft.invertDisplay(true);
   tft.fillScreen(ST77XX_BLACK);
   Serial.println("[UI] Init Config Complete");
 }
@@ -26,191 +28,186 @@ void BathroomUI::update() {
   if (!appState)
     return;
 
-  bool currentSOS = appState->isSOS();
-
-  // SOS Blink / State change
-  if (currentSOS) {
+  // SOS Logic
+  if (appState->isSOS()) {
     drawSOS();
     lastSOS = true;
     return;
   } else if (lastSOS) {
-    // Clear SOS screen when it ends
     tft.fillScreen(ST77XX_BLACK);
     lastSOS = false;
+    lastTemp = -100.0f;
   }
 
   float temp = appState->getTemperature();
   bool listening = appState->isListening();
 
-  // Get current time
+  // DEBUG
+  // Serial.printf("[UI] Temp: %.2f Listening: %d\n", temp, listening);
+
+  // 1. Calculate background color based on Temp
+  // 1. Calculate background color based on Temp & Time
+  int currentHour = 12; // Default day
   time_t now;
   struct tm timeinfo;
-  bool timeValid = false;
-  if (time(&now) > 100000) { // Check if SNTP has synced
+  bool timeValid = (time(&now) > 100000);
+  if (timeValid) {
     localtime_r(&now, &timeinfo);
-    timeValid = true;
+    currentHour = timeinfo.tm_hour;
   }
 
-  // Force redraw if everything is new or temp changed significantly
-  bool forceRedraw = (abs(temp - lastTemp) > 0.5f);
-  drawBackground(temp, forceRedraw);
+  uint16_t bgColor = interpolateColor(temp, currentHour);
 
-  // Draw Day Phase (Sun/Moon)
-  if (timeValid && (timeinfo.tm_hour != lastHour || forceRedraw)) {
-    drawDayPhase(200, 20, timeinfo.tm_hour);
-    lastHour = timeinfo.tm_hour;
+  // debug serials for time and temp
+  Serial.printf("[UI] Temp: %.2f C\n", temp);
+  if (timeValid) {
+    Serial.printf("[UI] Time: %02d:%02d\n", timeinfo.tm_hour, timeinfo.tm_min);
+  } else {
+    Serial.println("[UI] Time: SYNCING...");
   }
 
-  // Draw Time with blinking colon
-  static unsigned long lastColonBlink = 0;
-  bool colonVisible = (millis() / 500) % 2 == 0;
+  // Force redraw if temp changes heavily or first run
+  bool forceBgRedraw = (abs(temp - lastTemp) > 0.5f);
+
+  if (forceBgRedraw) {
+    tft.fillScreen(bgColor);
+    lastTemp = temp;
+    lastHour = -1;
+    lastMin = -1;
+    lastColonVisible = !lastColonVisible;
+
+    // Draw Temp (Bottom)
+    tft.setCursor(10, 90);
+    tft.setTextColor(ST77XX_YELLOW, bgColor);
+    tft.setTextSize(3);
+    if (isnan(temp)) {
+      tft.print("--.- C");
+    } else {
+      tft.print(temp, 1);
+      tft.print(" C");
+    }
+
+    // Draw Day Phase
+    if (timeValid)
+      drawDayPhase(200, 20, timeinfo.tm_hour);
+  }
+
+  drawTrosky(160, 80, listening, forceBgRedraw);
 
   if (timeValid) {
-    if (timeinfo.tm_min != lastMin || colonVisible != lastColonVisible ||
-        forceRedraw) {
-      char timeBuf[16];
-      snprintf(timeBuf, sizeof(timeBuf), "%02d%s%02d", timeinfo.tm_hour,
-               colonVisible ? ":" : " ", timeinfo.tm_min);
-      // Center-ish large time
-      drawTextWithOutline(10, 35, timeBuf, ST77XX_WHITE, ST77XX_BLACK, 5);
-      lastMin = timeinfo.tm_min;
+    int cursorY = 35;
+
+    // HOURS
+    if (timeinfo.tm_hour != lastHour || forceBgRedraw) {
+      tft.fillRect(5, cursorY, 70, 40, bgColor); // Widen clean area
+      tft.setCursor(10, cursorY);
+      tft.setTextColor(ST77XX_WHITE, bgColor);
+      tft.setTextSize(5);
+      if (timeinfo.tm_hour < 10)
+        tft.print("0");
+      tft.print(timeinfo.tm_hour);
+      lastHour = timeinfo.tm_hour;
+      // Redraw phase if hour changed
+      drawDayPhase(200, 20, timeinfo.tm_hour);
+    }
+
+    // COLON
+    bool colonVisible = (millis() / 500) % 2 == 0;
+    if (colonVisible != lastColonVisible || forceBgRedraw) {
+      tft.fillRect(75, cursorY, 20, 40, bgColor); // Adjust pos
+      if (colonVisible) {
+        tft.setCursor(75, cursorY);
+        tft.setTextColor(ST77XX_WHITE, bgColor);
+        tft.setTextSize(5);
+        tft.print(":");
+      }
       lastColonVisible = colonVisible;
     }
+
+    // MINUTES
+    if (timeinfo.tm_min != lastMin || forceBgRedraw) {
+      tft.fillRect(95, cursorY, 70, 40,
+                   bgColor); // Widen clean area to fixed glitch
+      tft.setCursor(95, cursorY);
+      tft.setTextColor(ST77XX_WHITE, bgColor);
+      tft.setTextSize(5);
+      if (timeinfo.tm_min < 10)
+        tft.print("0");
+      tft.print(timeinfo.tm_min);
+      lastMin = timeinfo.tm_min;
+    }
   } else {
-    drawTextWithOutline(10, 35, "--:--", ST77XX_WHITE, ST77XX_BLACK, 5);
+    if (millis() % 1000 < 100) {
+      tft.setCursor(10, 40);
+      tft.setTextColor(ST77XX_WHITE, bgColor);
+      tft.setTextSize(3);
+      tft.print("SYNC...");
+    }
   }
-
-  // Draw Temperature
-  if (forceRedraw) {
-    char tempBuf[16];
-    snprintf(tempBuf, sizeof(tempBuf), "%.1f C", temp);
-    drawTextWithOutline(10, 90, tempBuf, ST77XX_YELLOW, ST77XX_BLACK, 3);
-    lastTemp = temp;
-  }
-
-  // Draw Trosky
-  drawTrosky(160, 80, listening);
 }
 
 void BathroomUI::drawBackground(float temp, bool force) {
-  if (!force)
-    return;
-  uint16_t bgColor = interpolateColor(temp);
-  tft.fillRect(0, 0, 240, 135, bgColor);
-
-  // [Pulse Effect] if listening
-  if (appState->isListening()) {
-    tft.drawRect(0, 0, 240, 135, ST77XX_WHITE);
-    tft.drawRect(1, 1, 238, 133, ST77XX_WHITE);
-  }
+  // Simplified: Does nothing now, handled in update
 }
 
-uint16_t BathroomUI::interpolateColor(float temp) {
-  // 20C -> Blue (0,0,255), 30C -> Orange (255,165,0)
-  float factor = (temp - 20.0f) / 10.0f;
-  if (factor < 0)
-    factor = 0;
-  if (factor > 1)
-    factor = 1;
+uint16_t BathroomUI::interpolateColor(float temp, int hour) {
+  // Night Mode (18:00 - 06:00) -> Dark Navy
+  if (hour < 6 || hour >= 18) {
+    return 0x000F; // Dark Navy Blue
+  }
 
-  byte r = (byte)(0 + (255 - 0) * factor);
-  byte g = (byte)(0 + (165 - 0) * factor);
-  byte b = (byte)(255 + (0 - 255) * factor);
+  // Day Mode -> Temp Gradient
+  // Cold (Blue) -> Hot (Orange)
+  // Map 15C to Blue, 30C to Orange
+  if (temp < 15)
+    return 0x001F; // Blue
+  if (temp > 30)
+    return 0xFD20; // Orange
 
-  return tft.color565(r, g, b);
+  // Simple interpolation logic could go here, but stepping is safer for now
+  return 0x03E0; // Dark Green-ish (Mid) or keep simpler
 }
 
 void BathroomUI::drawDayPhase(int x, int y, int hour) {
-  tft.fillRect(x - 15, y - 15, 30, 30,
-               interpolateColor(appState->getTemperature())); // Clear area
+  tft.fillCircle(x, y, 16, ST77XX_BLACK); // Clear with Black
   if (hour >= 6 && hour < 18) {
-    // Sun
     tft.fillCircle(x, y, 10, ST77XX_YELLOW);
-    for (int i = 0; i < 8; i++) {
-      float ang = i * 0.785f;
-      tft.drawLine(x + cos(ang) * 12, y + sin(ang) * 12, x + cos(ang) * 16,
-                   y + sin(ang) * 16, ST77XX_YELLOW);
-    }
   } else {
-    // Moon
     tft.fillCircle(x, y, 10, ST77XX_WHITE);
-    tft.fillCircle(x + 4, y - 4, 10,
-                   interpolateColor(appState->getTemperature()));
   }
 }
 
-void BathroomUI::drawTextWithOutline(int x, int y, const char *text,
-                                     uint16_t color, uint16_t outlineColor,
-                                     uint8_t size) {
-  tft.setTextSize(size);
-  tft.setTextColor(outlineColor);
+#include "app/modules/bathroom/TroskyBitmap.h"
 
-  // Thicker outline for larger text
-  int thickness = (size > 2) ? 2 : 1;
+void BathroomUI::drawTrosky(int x, int y, bool wag, bool forceRedraw) {
+  static bool drawn = false;
 
-  for (int dx = -thickness; dx <= thickness; dx++) {
-    for (int dy = -thickness; dy <= thickness; dy++) {
-      if (dx == 0 && dy == 0)
-        continue;
-      tft.setCursor(x + dx, y + dy);
-      tft.print(text);
-    }
+  // Draw Bitmap Image
+  if (forceRedraw || !drawn) {
+    // Clear area (slightly larger to account for old vector drawing artifacts)
+    tft.fillRect(x - 20, y, TROSKY_WIDTH + 5, TROSKY_HEIGHT + 5,
+                 interpolateColor(lastTemp, lastHour));
+
+    // Draw Bitmap
+    tft.drawRGBBitmap(x, y, troskyBitmap, TROSKY_WIDTH, TROSKY_HEIGHT);
+    drawn = true;
+
+    // Force background update on next Wag to prevent potential ghosting if
+    // needed
   }
-
-  tft.setTextColor(color);
-  tft.setCursor(x, y);
-  tft.print(text);
-}
-
-void BathroomUI::drawTrosky(int x, int y, bool wag) {
-  static bool lastWag = false;
-  if (wag != lastWag) {
-    // Clear tail area if state changed
-    tft.fillRect(x - 15, y, 15, 30,
-                 interpolateColor(appState->getTemperature()));
-    lastWag = wag;
-  }
-
-  // Body
-  tft.fillRoundRect(x, y, 40, 30, 5, tft.color565(139, 69, 19));
-  // Head
-  tft.fillCircle(x + 45, y + 5, 12, tft.color565(139, 69, 19));
-  // Eye
-  tft.fillCircle(x + 48, y + 2, 2, ST77XX_BLACK);
-
-  if (wag) {
-    if (millis() - lastAnimTime > 150) {
-      // Clear old tail
-      tft.drawLine(x, y + 15, x - 10, y + 15 + tailAngle,
-                   interpolateColor(appState->getTemperature()));
-      lastAnimTime = millis();
-      tailAngle = tailUp ? 8 : -8;
-      tailUp = !tailUp;
-    }
-  } else {
-    tailAngle = 0;
-  }
-  // Draw current tail
-  tft.drawLine(x, y + 15, x - 10, y + 15 + tailAngle,
-               tft.color565(139, 69, 19));
 }
 
 void BathroomUI::drawSOS() {
-  static bool blink = false;
   static unsigned long lastBlink = 0;
-
   if (millis() - lastBlink > 500) {
     lastBlink = millis();
-    blink = !blink;
-    uint16_t color = blink ? ST77XX_RED : ST77XX_BLACK;
-    tft.fillScreen(color);
-
-    if (blink) {
-      tft.fillCircle(100, 60, 20, ST77XX_WHITE);
-      tft.fillCircle(140, 60, 20, ST77XX_WHITE);
-      tft.fillTriangle(80, 70, 160, 70, 120, 110, ST77XX_WHITE);
-      drawTextWithOutline(40, 20, "SOS EMERGENCIA", ST77XX_WHITE, ST77XX_BLACK,
-                          2);
+    bool on = (millis() / 500) % 2;
+    tft.fillScreen(on ? ST77XX_RED : ST77XX_BLACK);
+    if (on) {
+      tft.setCursor(40, 50);
+      tft.setTextColor(ST77XX_WHITE); // Transparent bg
+      tft.setTextSize(3);
+      tft.print("SOS");
     }
   }
 }

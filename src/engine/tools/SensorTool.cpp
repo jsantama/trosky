@@ -1,6 +1,8 @@
 #include "engine/tools/SensorTool.h"
 #include <Arduino.h>
 
+#include "config.h"
+
 SensorTool::SensorTool(IAppState *state, EventBus *bus)
     : appState(state), eventBus(bus), lastUpdate(0) {}
 
@@ -17,7 +19,7 @@ void SensorTool::update() {
   if (now - lastUpdate >= UPDATE_INTERVAL) {
     lastUpdate = now;
 
-    float temp = bmp.readTemperature();
+    float temp = bmp.readTemperature() - SENSOR_TEMP_OFFSET;
     float press = bmp.readPressure();
 
     if (appState) {
