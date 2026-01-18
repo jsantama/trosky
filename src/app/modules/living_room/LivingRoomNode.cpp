@@ -17,8 +17,13 @@ LivingRoomNode::~LivingRoomNode() {
 }
 
 void LivingRoomNode::init() {
-  // WhatsApp Service Init from ServiceLocator
+  // [SESSION PROTOCOL 2.114 - Error Handling] Validate service availability
   whatsApp = ServiceLocator::instance().get<WhatsAppService>("WhatsAppService");
+  if (!whatsApp) {
+    Serial.println("[ERROR] WhatsAppService not registered in ServiceLocator");
+    return;
+  }
+
   notificationTool = new NotificationTool(EventBus, whatsApp);
   notificationTool->init();
 

@@ -30,9 +30,13 @@ void BathroomNode::init() {
   inputTool = new InputTool(AppState, EventBus);
   inputTool->init(HAL::Bathroom::PIN_SOS, HAL::Bathroom::PIN_VOICE);
 
-  // [New] WhatsApp Service must be registered first in ServiceLocator
+  // [SESSION PROTOCOL 2.114 - Error Handling] Validate service availability
   auto *whatsApp =
       ServiceLocator::instance().get<WhatsAppService>("WhatsAppService");
+  if (!whatsApp) {
+    Serial.println("[ERROR] WhatsAppService not registered in ServiceLocator");
+    return;
+  }
   notificationTool = new NotificationTool(EventBus, whatsApp);
   notificationTool->init();
 
