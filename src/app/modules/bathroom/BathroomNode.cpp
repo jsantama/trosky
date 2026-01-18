@@ -18,32 +18,46 @@ BathroomNode::~BathroomNode() {
 }
 
 void BathroomNode::init() {
-  // Initialize I2C [SESSION PROTOCOL 4.3 - HAL Mapping]
+  Serial.println("[NODE] Initializing BathroomNode...");
+
+  // 1. UI initialization (Prioritize to turn on backlight)
+  Serial.println("[NODE] Initializing UI...");
+  ui = new BathroomUI(AppState);
+  ui->init();
+
+  // 2. Initialize I2C [SESSION PROTOCOL 4.3 - HAL Mapping]
+  Serial.println("[NODE] Initializing I2C...");
   Wire.begin(HAL::Bathroom::I2C_SDA, HAL::Bathroom::I2C_SCL);
 
-  // Initialize SNTP
+  // 3. Initialize SNTP
+  Serial.println("[NODE] ConfigTime SNTP...");
   configTime(TIMEZONE_OFFSET, 0, NTP_SERVER_PRIMARY, NTP_SERVER_SECONDARY);
 
-  // Tools initialization
+  // 4. Tools initialization
+  Serial.println("[NODE] Initializing SensorTool...");
   sensorTool = new SensorTool(AppState, eventBus);
-  sensorTool->init(HAL::Bathroom::BMP280_ADDR);
+  if (!sensorTool->init(HAL::Bathroom::BMP280_ADDR)) {
+    Serial.println(
+        "[WARN] SensorTool init failed (Check I2C address or wiring)");
+  }
 
+  Serial.println("[NODE] Initializing InputTool...");
   inputTool = new InputTool(AppState, eventBus);
   inputTool->init(HAL::Bathroom::PIN_SOS, HAL::Bathroom::PIN_VOICE);
 
-  // [SESSION PROTOCOL 2.114 - Error Handling] Validate service availability
+  // 5. Service validation
+  Serial.println("[NODE] Validating Services...");
   auto *whatsApp =
       ServiceLocator::instance().get<WhatsAppService>("WhatsAppService");
   if (!whatsApp) {
-    Serial.println("[ERROR] WhatsAppService not registered in ServiceLocator");
+    Serial.println("[ERROR] WhatsAppService not registered");
     return;
   }
+
   notificationTool = new NotificationTool(eventBus, whatsApp);
   notificationTool->init();
 
-  // UI initialization
-  ui = new BathroomUI(AppState);
-  ui->init();
+  Serial.println("[NODE] BathroomNode Initialized Successfully");
 }
 
 void BathroomNode::loop() {

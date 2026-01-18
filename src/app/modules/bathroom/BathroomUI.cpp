@@ -3,19 +3,23 @@
 #include <time.h>
 
 BathroomUI::BathroomUI(IAppState *state)
-    : appState(state), tailAngle(0), tailUp(true), lastTemp(-100.0f),
-      lastListening(false), lastSOS(false), lastHour(-1), lastMin(-1),
-      lastColonVisible(true) {
+    : appState(state), tft(HAL::Bathroom::PIN_TFT_CS, HAL::Bathroom::PIN_TFT_DC,
+                           HAL::Bathroom::PIN_TFT_RST),
+      tailAngle(0), tailUp(true), lastTemp(-100.0f), lastListening(false),
+      lastSOS(false), lastHour(-1), lastMin(-1), lastColonVisible(true) {
   lastAnimTime = millis();
 }
 
 void BathroomUI::init() {
+  Serial.println("[UI] Setting Backlight Pin...");
   pinMode(HAL::Bathroom::PIN_TFT_BL, OUTPUT);
   digitalWrite(HAL::Bathroom::PIN_TFT_BL, HIGH);
 
-  tft.init();
+  Serial.println("[UI] TFT Init (Adafruit)...");
+  tft.init(135, 240); // Init ST7789 240x135
   tft.setRotation(1);
-  tft.fillScreen(TFT_BLACK);
+  tft.fillScreen(ST77XX_BLACK);
+  Serial.println("[UI] Init Config Complete");
 }
 
 void BathroomUI::update() {
@@ -31,7 +35,7 @@ void BathroomUI::update() {
     return;
   } else if (lastSOS) {
     // Clear SOS screen when it ends
-    tft.fillScreen(TFT_BLACK);
+    tft.fillScreen(ST77XX_BLACK);
     lastSOS = false;
   }
 
@@ -67,19 +71,20 @@ void BathroomUI::update() {
       char timeBuf[16];
       snprintf(timeBuf, sizeof(timeBuf), "%02d%s%02d", timeinfo.tm_hour,
                colonVisible ? ":" : " ", timeinfo.tm_min);
-      drawTextWithOutline(10, 10, timeBuf, TFT_WHITE, TFT_BLACK, 2);
+      // Center-ish large time
+      drawTextWithOutline(10, 35, timeBuf, ST77XX_WHITE, ST77XX_BLACK, 5);
       lastMin = timeinfo.tm_min;
       lastColonVisible = colonVisible;
     }
   } else {
-    drawTextWithOutline(10, 10, "--:--", TFT_WHITE, TFT_BLACK, 2);
+    drawTextWithOutline(10, 35, "--:--", ST77XX_WHITE, ST77XX_BLACK, 5);
   }
 
   // Draw Temperature
   if (forceRedraw) {
     char tempBuf[16];
     snprintf(tempBuf, sizeof(tempBuf), "%.1f C", temp);
-    drawTextWithOutline(10, 60, tempBuf, TFT_YELLOW, TFT_BLACK, 2);
+    drawTextWithOutline(10, 90, tempBuf, ST77XX_YELLOW, ST77XX_BLACK, 3);
     lastTemp = temp;
   }
 
@@ -95,8 +100,8 @@ void BathroomUI::drawBackground(float temp, bool force) {
 
   // [Pulse Effect] if listening
   if (appState->isListening()) {
-    tft.drawRect(0, 0, 240, 135, TFT_WHITE);
-    tft.drawRect(1, 1, 238, 133, TFT_WHITE);
+    tft.drawRect(0, 0, 240, 135, ST77XX_WHITE);
+    tft.drawRect(1, 1, 238, 133, ST77XX_WHITE);
   }
 }
 
@@ -120,15 +125,15 @@ void BathroomUI::drawDayPhase(int x, int y, int hour) {
                interpolateColor(appState->getTemperature())); // Clear area
   if (hour >= 6 && hour < 18) {
     // Sun
-    tft.fillCircle(x, y, 10, TFT_YELLOW);
+    tft.fillCircle(x, y, 10, ST77XX_YELLOW);
     for (int i = 0; i < 8; i++) {
       float ang = i * 0.785f;
       tft.drawLine(x + cos(ang) * 12, y + sin(ang) * 12, x + cos(ang) * 16,
-                   y + sin(ang) * 16, TFT_YELLOW);
+                   y + sin(ang) * 16, ST77XX_YELLOW);
     }
   } else {
     // Moon
-    tft.fillCircle(x, y, 10, TFT_WHITE);
+    tft.fillCircle(x, y, 10, ST77XX_WHITE);
     tft.fillCircle(x + 4, y - 4, 10,
                    interpolateColor(appState->getTemperature()));
   }
@@ -139,8 +144,12 @@ void BathroomUI::drawTextWithOutline(int x, int y, const char *text,
                                      uint8_t size) {
   tft.setTextSize(size);
   tft.setTextColor(outlineColor);
-  for (int dx = -1; dx <= 1; dx++) {
-    for (int dy = -1; dy <= 1; dy++) {
+
+  // Thicker outline for larger text
+  int thickness = (size > 2) ? 2 : 1;
+
+  for (int dx = -thickness; dx <= thickness; dx++) {
+    for (int dy = -thickness; dy <= thickness; dy++) {
       if (dx == 0 && dy == 0)
         continue;
       tft.setCursor(x + dx, y + dy);
@@ -167,7 +176,7 @@ void BathroomUI::drawTrosky(int x, int y, bool wag) {
   // Head
   tft.fillCircle(x + 45, y + 5, 12, tft.color565(139, 69, 19));
   // Eye
-  tft.fillCircle(x + 48, y + 2, 2, TFT_BLACK);
+  tft.fillCircle(x + 48, y + 2, 2, ST77XX_BLACK);
 
   if (wag) {
     if (millis() - lastAnimTime > 150) {
@@ -193,14 +202,15 @@ void BathroomUI::drawSOS() {
   if (millis() - lastBlink > 500) {
     lastBlink = millis();
     blink = !blink;
-    uint16_t color = blink ? TFT_RED : TFT_BLACK;
+    uint16_t color = blink ? ST77XX_RED : ST77XX_BLACK;
     tft.fillScreen(color);
 
     if (blink) {
-      tft.fillCircle(100, 60, 20, TFT_WHITE);
-      tft.fillCircle(140, 60, 20, TFT_WHITE);
-      tft.fillTriangle(80, 70, 160, 70, 120, 110, TFT_WHITE);
-      drawTextWithOutline(40, 20, "SOS EMERGENCIA", TFT_WHITE, TFT_BLACK, 2);
+      tft.fillCircle(100, 60, 20, ST77XX_WHITE);
+      tft.fillCircle(140, 60, 20, ST77XX_WHITE);
+      tft.fillTriangle(80, 70, 160, 70, 120, 110, ST77XX_WHITE);
+      drawTextWithOutline(40, 20, "SOS EMERGENCIA", ST77XX_WHITE, ST77XX_BLACK,
+                          2);
     }
   }
 }

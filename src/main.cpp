@@ -36,6 +36,15 @@ void connectWiFi() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.setDebugOutput(true);
+
+  // Wait for USB Serial to become ready or timeout after 5 seconds
+  unsigned long startTime = millis();
+  while (!Serial && (millis() - startTime) < 5000) {
+    delay(10);
+  }
+  delay(1000);
+  Serial.println("--- TROSKY BOOTING (DEBUG MODE) ---");
 
   // [SESSION PROTOCOL 2.114 - 4.3] Failure Recovery
   esp_task_wdt_init(30, true); // 30 seconds timeout

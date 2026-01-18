@@ -4,19 +4,22 @@
 // [SESSION PROTOCOL 2.114 - 4.3] Hardware Abstraction (HAL)
 // Logic must be decoupled from specific pinouts.
 
-// Node: Bathroom (ESP32-S3 + TFT + BMP280)
+// Node: Bathroom (Adafruit Feather ESP32-S3 TFT + BMP280)
 namespace HAL {
 namespace Bathroom {
 constexpr int PIN_SOS = 4;
 constexpr int PIN_VOICE = 5;
 
-// Display (ST7789)
-constexpr int PIN_TFT_BL = 38;
+// Display (Built-in ST7789)
+constexpr int PIN_TFT_BL = 45;
+constexpr int PIN_TFT_CS = 7;
+constexpr int PIN_TFT_DC = 39;
+constexpr int PIN_TFT_RST = 40;
 
-// I2C
-constexpr int I2C_SDA = 8;
-constexpr int I2C_SCL = 9;
-constexpr int BMP280_ADDR = 0x6B;
+// I2C (Standard Feather Pins)
+constexpr int I2C_SDA = 3;
+constexpr int I2C_SCL = 4;
+constexpr int BMP280_ADDR = 0x77;
 } // namespace Bathroom
 
 namespace LivingRoom {

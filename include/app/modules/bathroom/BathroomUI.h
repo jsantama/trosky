@@ -2,8 +2,9 @@
 #define BATHROOM_UI_H
 
 #include "engine/IAppState.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7789.h>
 #include <Arduino.h>
-#include <TFT_eSPI.h>
 
 /**
  * [SESSION PROTOCOL 2.114 - 3.3] Dumb Canvas
@@ -17,7 +18,7 @@ public:
 
 private:
   IAppState *appState;
-  TFT_eSPI tft;
+  Adafruit_ST7789 tft;
 
   unsigned long lastAnimTime;
   int tailAngle;
