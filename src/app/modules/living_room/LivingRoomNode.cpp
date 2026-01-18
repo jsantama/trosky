@@ -2,6 +2,7 @@
 #include "HAL.h"
 #include "engine/ServiceLocator.h"
 #include <driver/i2s.h>
+#include <esp_camera.h>
 
 #define SAMPLE_RATE 16000
 
@@ -11,9 +12,18 @@ LivingRoomNode::LivingRoomNode()
 void LivingRoomNode::init() {
   // WhatsApp Service Init from ServiceLocator
   whatsApp = ServiceLocator::instance().get<WhatsAppService>("WhatsAppService");
+  notificationTool = new NotificationTool(EventBus, whatsApp);
+  notificationTool->init();
 
   // I2S Mic Init
   setupI2S();
+
+  // Camera Init [SESSION PROTOCOL 4.3 - HAL Mapping]
+  if (setupCamera()) {
+    Serial.println("Camera Initialized");
+  } else {
+    Serial.println("Camera Initialization Failed");
+  }
 
   Serial.println("Living Room Node Initialized");
 }
@@ -66,15 +76,48 @@ String LivingRoomNode::captureIntent() {
 }
 
 void LivingRoomNode::processTaxiRequest() {
-  if (whatsApp)
-    whatsApp->sendMessage("🚕 Solicitud de Taxi desde la Sala.");
   if (EventBus)
     EventBus->publish(EventType::INTENT_TAXI);
 }
 
 void LivingRoomNode::processRecipeRequest() {
-  if (whatsApp)
-    whatsApp->sendMessage("🍳 Receta sugerida: [Detalle de la receta]");
   if (EventBus)
     EventBus->publish(EventType::INTENT_RECIPE);
+}
+
+bool LivingRoomNode::setupCamera() {
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = HAL::LivingRoom::CAM_D0;
+  config.pin_d1 = HAL::LivingRoom::CAM_D1;
+  config.pin_d2 = HAL::LivingRoom::CAM_D2;
+  config.pin_d3 = HAL::LivingRoom::CAM_D3;
+  config.pin_d4 = HAL::LivingRoom::CAM_D4;
+  config.pin_d5 = HAL::LivingRoom::CAM_D5;
+  config.pin_d6 = HAL::LivingRoom::CAM_D6;
+  config.pin_d7 = HAL::LivingRoom::CAM_D7;
+  config.pin_xclk = HAL::LivingRoom::CAM_XCLK;
+  config.pin_pclk = HAL::LivingRoom::CAM_PCLK;
+  config.pin_vsync = HAL::LivingRoom::CAM_VSYNC;
+  config.pin_href = HAL::LivingRoom::CAM_HREF;
+  config.pin_sscb_sda = HAL::LivingRoom::CAM_SDA;
+  config.pin_sscb_scl = HAL::LivingRoom::CAM_SCL;
+  config.pin_pwdn = HAL::LivingRoom::CAM_PWDN;
+  config.pin_reset = HAL::LivingRoom::CAM_RESET;
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+
+  if (psramFound()) {
+    config.frame_size = FRAMESIZE_UXGA;
+    config.jpeg_quality = 10;
+    config.fb_count = 2;
+  } else {
+    config.frame_size = FRAMESIZE_SVGA;
+    config.jpeg_quality = 12;
+    config.fb_count = 1;
+  }
+
+  esp_err_t err = esp_camera_init(&config);
+  return (err == ESP_OK);
 }

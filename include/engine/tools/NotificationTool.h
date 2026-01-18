@@ -18,6 +18,8 @@ private:
   WhatsAppService *whatsApp;
 
   void onSOS(const Event &e);
+  void onTaxi(const Event &e);
+  void onRecipe(const Event &e);
 };
 
 #endif

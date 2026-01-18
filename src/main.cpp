@@ -9,6 +9,7 @@
 #include "engine/AppState.h"
 #include "engine/EventBus.h"
 #include "engine/ServiceLocator.h"
+#include "services/MockAIService.h"
 #include "services/WhatsAppService.h"
 #include <Arduino.h>
 #include <WiFi.h>
@@ -49,6 +50,7 @@ void setup() {
   ServiceLocator::instance().registerService("EventBus", bus);
   ServiceLocator::instance().registerService("AppState", state);
   ServiceLocator::instance().registerService("WhatsAppService", whatsApp);
+  ServiceLocator::instance().registerService("AIService", new MockAIService());
 
   // Manual Injection
   node.EventBus = bus;

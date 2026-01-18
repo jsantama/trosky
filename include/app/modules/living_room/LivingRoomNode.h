@@ -3,6 +3,7 @@
 
 #include "engine/EventBus.h"
 #include "engine/IAppState.h"
+#include "engine/tools/NotificationTool.h"
 #include "services/WhatsAppService.h"
 
 class LivingRoomNode {
@@ -17,12 +18,14 @@ public:
 
 private:
   void setupI2S();
+  bool setupCamera();
   bool detectWakeWord();
   String captureIntent();
   void processTaxiRequest();
   void processRecipeRequest();
 
   WhatsAppService *whatsApp;
+  NotificationTool *notificationTool;
 };
 
 #endif
