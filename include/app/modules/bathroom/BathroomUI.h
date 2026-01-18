@@ -23,11 +23,20 @@ private:
   int tailAngle;
   bool tailUp;
 
-  void drawBackground(float temp);
+  // [State Tracking for Anti-Flicker]
+  float lastTemp;
+  bool lastListening;
+  bool lastSOS;
+  int lastHour;
+  int lastMin;
+  bool lastColonVisible;
+
+  void drawBackground(float temp, bool force);
   void drawTrosky(int x, int y, bool wag);
   void drawSOS();
+  void drawDayPhase(int x, int y, int hour);
   void drawTextWithOutline(int x, int y, const char *text, uint16_t color,
-                           uint16_t outlineColor);
+                           uint16_t outlineColor, uint8_t size = 1);
   uint16_t interpolateColor(float temp);
 };
 

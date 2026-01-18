@@ -1,11 +1,20 @@
 #include "app/modules/bathroom/BathroomNode.h"
 #include "HAL.h"
+#include <Wire.h>
+#include <time.h>
 
 BathroomNode::BathroomNode()
     : AppState(nullptr), EventBus(nullptr), sensorTool(nullptr),
       inputTool(nullptr), notificationTool(nullptr), ui(nullptr) {}
 
 void BathroomNode::init() {
+  // Initialize I2C [SESSION PROTOCOL 4.3 - HAL Mapping]
+  Wire.begin(HAL::Bathroom::I2C_SDA, HAL::Bathroom::I2C_SCL);
+
+  // Initialize SNTP
+  configTime(-18000, 0, "pool.ntp.org",
+             "time.nist.gov"); // GMT-5 (Colombia/Peru/East Coast)
+
   // Tools initialization
   sensorTool = new SensorTool(AppState, EventBus);
   sensorTool->init(HAL::Bathroom::BMP280_ADDR);
