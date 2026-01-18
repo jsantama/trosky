@@ -86,20 +86,17 @@ void BathroomUI::update() {
       tft.print(temp, 1);
       tft.print(" C");
     }
-
-    // Draw Day Phase
-    if (timeValid)
-      drawDayPhase(200, 20, timeinfo.tm_hour);
   }
 
-  drawTrosky(160, 80, listening, forceBgRedraw);
+  // Trosky (Moved to 190 to avoid Minutes overlap)
+  drawTrosky(190, 80, listening, forceBgRedraw);
 
   if (timeValid) {
     int cursorY = 35;
 
     // HOURS
     if (timeinfo.tm_hour != lastHour || forceBgRedraw) {
-      tft.fillRect(5, cursorY, 70, 40, bgColor); // Widen clean area
+      tft.fillRect(5, cursorY, 70, 40, bgColor);
       tft.setCursor(10, cursorY);
       tft.setTextColor(ST77XX_WHITE, bgColor);
       tft.setTextSize(5);
@@ -111,10 +108,10 @@ void BathroomUI::update() {
       drawDayPhase(200, 20, timeinfo.tm_hour);
     }
 
-    // COLON
+    // COLON (Size 5 char is ~30px wide)
     bool colonVisible = (millis() / 500) % 2 == 0;
     if (colonVisible != lastColonVisible || forceBgRedraw) {
-      tft.fillRect(75, cursorY, 20, 40, bgColor); // Adjust pos
+      tft.fillRect(75, cursorY, 30, 40, bgColor); // Adjusted width
       if (colonVisible) {
         tft.setCursor(75, cursorY);
         tft.setTextColor(ST77XX_WHITE, bgColor);
@@ -124,11 +121,10 @@ void BathroomUI::update() {
       lastColonVisible = colonVisible;
     }
 
-    // MINUTES
+    // MINUTES (Moved to 105/110)
     if (timeinfo.tm_min != lastMin || forceBgRedraw) {
-      tft.fillRect(95, cursorY, 70, 40,
-                   bgColor); // Widen clean area to fixed glitch
-      tft.setCursor(95, cursorY);
+      tft.fillRect(105, cursorY, 70, 40, bgColor);
+      tft.setCursor(110, cursorY); // Shifted right
       tft.setTextColor(ST77XX_WHITE, bgColor);
       tft.setTextSize(5);
       if (timeinfo.tm_min < 10)
@@ -184,8 +180,8 @@ void BathroomUI::drawTrosky(int x, int y, bool wag, bool forceRedraw) {
 
   // Draw Bitmap Image
   if (forceRedraw || !drawn) {
-    // Clear area (slightly larger to account for old vector drawing artifacts)
-    tft.fillRect(x - 20, y, TROSKY_WIDTH + 5, TROSKY_HEIGHT + 5,
+    // Clear exact area
+    tft.fillRect(x, y, TROSKY_WIDTH, TROSKY_HEIGHT,
                  interpolateColor(lastTemp, lastHour));
 
     // Draw Bitmap
