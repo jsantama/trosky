@@ -1,5 +1,6 @@
 #include "app/modules/bathroom/BathroomNode.h"
 #include "HAL.h"
+#include "config.h"
 #include <Wire.h>
 #include <time.h>
 
@@ -12,8 +13,7 @@ void BathroomNode::init() {
   Wire.begin(HAL::Bathroom::I2C_SDA, HAL::Bathroom::I2C_SCL);
 
   // Initialize SNTP
-  configTime(-18000, 0, "pool.ntp.org",
-             "time.nist.gov"); // GMT-5 (Colombia/Peru/East Coast)
+  configTime(TIMEZONE_OFFSET, 0, NTP_SERVER_PRIMARY, NTP_SERVER_SECONDARY);
 
   // Tools initialization
   sensorTool = new SensorTool(AppState, EventBus);

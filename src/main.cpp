@@ -6,6 +6,7 @@
 #include "app/modules/living_room/LivingRoomNode.h"
 #endif
 
+#include "config.h"
 #include "engine/AppState.h"
 #include "engine/EventBus.h"
 #include "engine/ServiceLocator.h"
@@ -29,7 +30,7 @@ void connectWiFi() {
   if (WiFi.status() != WL_CONNECTED && millis() - lastAttempt > 5000) {
     lastAttempt = millis();
     Serial.println("Connecting to WiFi...");
-    WiFi.begin("YOUR_SSID", "YOUR_PASSWORD");
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   }
 }
 
@@ -45,7 +46,7 @@ void setup() {
   // Initialize Services
   auto *bus = new EventBus();
   auto *state = new AppState();
-  auto *whatsApp = new WhatsAppService("YOUR_PHONE", "YOUR_API_KEY");
+  auto *whatsApp = new WhatsAppService(WHATSAPP_PHONE, WHATSAPP_API_KEY);
 
   ServiceLocator::instance().registerService("EventBus", bus);
   ServiceLocator::instance().registerService("AppState", state);
