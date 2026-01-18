@@ -21,7 +21,7 @@ public:
 
   // Injected Services
   IAppState *AppState;
-  EventBus *EventBus;
+  EventBus *eventBus; // Renamed from EventBus to avoid naming conflict
 
 private:
   SensorTool *sensorTool;

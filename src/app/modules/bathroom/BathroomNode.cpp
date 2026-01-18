@@ -1,11 +1,12 @@
 #include "app/modules/bathroom/BathroomNode.h"
 #include "HAL.h"
 #include "config.h"
+#include "engine/ServiceLocator.h"
 #include <Wire.h>
 #include <time.h>
 
 BathroomNode::BathroomNode()
-    : AppState(nullptr), EventBus(nullptr), sensorTool(nullptr),
+    : AppState(nullptr), eventBus(nullptr), sensorTool(nullptr),
       inputTool(nullptr), notificationTool(nullptr), ui(nullptr) {}
 
 BathroomNode::~BathroomNode() {
@@ -24,10 +25,10 @@ void BathroomNode::init() {
   configTime(TIMEZONE_OFFSET, 0, NTP_SERVER_PRIMARY, NTP_SERVER_SECONDARY);
 
   // Tools initialization
-  sensorTool = new SensorTool(AppState, EventBus);
+  sensorTool = new SensorTool(AppState, eventBus);
   sensorTool->init(HAL::Bathroom::BMP280_ADDR);
 
-  inputTool = new InputTool(AppState, EventBus);
+  inputTool = new InputTool(AppState, eventBus);
   inputTool->init(HAL::Bathroom::PIN_SOS, HAL::Bathroom::PIN_VOICE);
 
   // [SESSION PROTOCOL 2.114 - Error Handling] Validate service availability
@@ -37,7 +38,7 @@ void BathroomNode::init() {
     Serial.println("[ERROR] WhatsAppService not registered in ServiceLocator");
     return;
   }
-  notificationTool = new NotificationTool(EventBus, whatsApp);
+  notificationTool = new NotificationTool(eventBus, whatsApp);
   notificationTool->init();
 
   // UI initialization

@@ -7,7 +7,7 @@
 #define SAMPLE_RATE 16000
 
 LivingRoomNode::LivingRoomNode()
-    : EventBus(nullptr), AppState(nullptr), whatsApp(nullptr),
+    : eventBus(nullptr), AppState(nullptr), whatsApp(nullptr),
       notificationTool(nullptr) {}
 
 LivingRoomNode::~LivingRoomNode() {
@@ -24,7 +24,7 @@ void LivingRoomNode::init() {
     return;
   }
 
-  notificationTool = new NotificationTool(EventBus, whatsApp);
+  notificationTool = new NotificationTool(eventBus, whatsApp);
   notificationTool->init();
 
   // I2S Mic Init
@@ -44,8 +44,8 @@ void LivingRoomNode::loop() {
   // Voice Recognition Loop (Simplified)
   if (detectWakeWord()) {
     Serial.println("Wake word 'Trosky' detected!");
-    if (EventBus)
-      EventBus->publish(EventType::WAKE_WORD_DETECTED);
+    if (eventBus)
+      eventBus->publish(EventType::WAKE_WORD_DETECTED);
 
     String intent = captureIntent();
     if (intent == "taxi") {
@@ -88,13 +88,13 @@ String LivingRoomNode::captureIntent() {
 }
 
 void LivingRoomNode::processTaxiRequest() {
-  if (EventBus)
-    EventBus->publish(EventType::INTENT_TAXI);
+  if (eventBus)
+    eventBus->publish(EventType::INTENT_TAXI);
 }
 
 void LivingRoomNode::processRecipeRequest() {
-  if (EventBus)
-    EventBus->publish(EventType::INTENT_RECIPE);
+  if (eventBus)
+    eventBus->publish(EventType::INTENT_RECIPE);
 }
 
 bool LivingRoomNode::setupCamera() {

@@ -13,8 +13,8 @@ public:
   void init();
   void loop();
 
-  // Dependencies (Injected)
-  EventBus *EventBus;
+  // Dependencies  // Injected Services
+  EventBus *eventBus; // Renamed from EventBus to avoid naming conflict
   IAppState *AppState;
 
 private:

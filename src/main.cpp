@@ -54,7 +54,7 @@ void setup() {
   ServiceLocator::instance().registerService("AIService", new MockAIService());
 
   // Manual Injection
-  node.EventBus = bus;
+  node.eventBus = bus;
   node.AppState = state;
 
   node.init();
